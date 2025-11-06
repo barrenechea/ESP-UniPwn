@@ -100,7 +100,7 @@ std::vector<uint8_t> decryptData(const uint8_t* data, size_t len) {
                                        &iv_offset, iv_copy, data, output.data());
 
     if (ret != 0) {
-        Serial.printf("ERROR: mbedTLS decryption failed: -0x%04X\n", -ret);
+        Serial.printf("Error: mbedTLS decryption failed: -0x%04X\n", -ret);
     }
 
     return output;
@@ -120,7 +120,7 @@ std::vector<uint8_t> encryptData(const uint8_t* data, size_t len) {
                                        &iv_offset, iv_copy, data, output.data());
 
     if (ret != 0) {
-        Serial.printf("ERROR: mbedTLS encryption failed: -0x%04X\n", -ret);
+        Serial.printf("Error: mbedTLS encryption failed: -0x%04X\n", -ret);
     }
 
     return output;
@@ -189,11 +189,9 @@ void printHex(const char* label, const std::vector<uint8_t>& data) {
 
 // Handle Instruction 1: Handshake/Authentication
 std::vector<uint8_t> handleHandshake(const std::vector<uint8_t>& packet) {
-    Serial.println("\n=== INSTRUCTION 1: HANDSHAKE ===");
-
     // Packet format: [0x52, len, 0x01, 0x00, 0x00, 'u','n','i','t','r','e','e', checksum]
     if (packet.size() < 12) {
-        Serial.println("ERROR: Handshake packet too short");
+        Serial.println("    Error: packet too short");
         return createResponse(INSTR_HANDSHAKE, {0x00}); // Failure
     }
 
@@ -203,29 +201,27 @@ std::vector<uint8_t> handleHandshake(const std::vector<uint8_t>& packet) {
         authString += (char)packet[i];
     }
 
-    Serial.printf("Auth string received: '%s'\n", authString.c_str());
+    Serial.printf("    Auth string: %s\n", authString.c_str());
 
     if (authString == "unitree") {
         emulator.authenticated = true;
-        Serial.println("✓ Authentication SUCCESSFUL");
+        Serial.println("    Status: accepted");
         return createResponse(INSTR_HANDSHAKE, {0x01}); // Success
     } else {
         emulator.authenticated = false;
-        Serial.println("✗ Authentication FAILED");
+        Serial.println("    Status: rejected");
         return createResponse(INSTR_HANDSHAKE, {0x00}); // Failure
     }
 }
 
 // Handle Instruction 2: Get Serial Number
 std::vector<uint8_t> handleGetSerial(const std::vector<uint8_t>& packet) {
-    Serial.println("\n=== INSTRUCTION 2: GET SERIAL NUMBER ===");
-
     if (!emulator.authenticated) {
-        Serial.println("ERROR: Not authenticated");
+        Serial.println("    Error: not authenticated");
         return createResponse(INSTR_GET_SERIAL, {0x00}); // Not authenticated
     }
 
-    Serial.printf("Returning serial: %s\n", SERIAL_NUMBER);
+    Serial.printf("    Serial number: %s\n", SERIAL_NUMBER);
 
     // For simplicity, send serial in one chunk
     // Format: [chunk_index, total_chunks, data...]
@@ -243,21 +239,19 @@ std::vector<uint8_t> handleGetSerial(const std::vector<uint8_t>& packet) {
 
 // Handle Instruction 3: Initialize WiFi
 std::vector<uint8_t> handleInitWiFi(const std::vector<uint8_t>& packet) {
-    Serial.println("\n=== INSTRUCTION 3: INITIALIZE WIFI ===");
-
     if (packet.size() < 4) {
-        Serial.println("ERROR: Packet too short");
+        Serial.println("    Error: packet too short");
         return createResponse(INSTR_INIT_WIFI, {0x00});
     }
 
     uint8_t mode = packet[3];
 
     if (mode == 0x01) {
-        Serial.println("WiFi Mode: AP (Access Point)");
+        Serial.println("    Mode: access point");
     } else if (mode == 0x02) {
-        Serial.println("WiFi Mode: STA (Station)");
+        Serial.println("    Mode: station");
     } else {
-        Serial.printf("WiFi Mode: Unknown (0x%02X)\n", mode);
+        Serial.printf("    Mode: unknown (0x%02X)\n", mode);
     }
 
     return createResponse(INSTR_INIT_WIFI, {0x01}); // Success
@@ -265,17 +259,13 @@ std::vector<uint8_t> handleInitWiFi(const std::vector<uint8_t>& packet) {
 
 // Handle Instruction 4: Set SSID
 std::vector<uint8_t> handleSetSSID(const std::vector<uint8_t>& packet) {
-    Serial.println("\n=== INSTRUCTION 4: SET SSID ===");
-
     if (packet.size() < 5) {
-        Serial.println("ERROR: Packet too short");
+        Serial.println("    Error: packet too short");
         return createResponse(INSTR_SET_SSID, {0x00});
     }
 
     uint8_t chunkIndex = packet[3];
     uint8_t totalChunks = packet[4];
-
-    Serial.printf("Chunk %d of %d\n", chunkIndex, totalChunks);
 
     // Extract chunk data
     for (size_t i = 5; i < packet.size() - 1; i++) {
@@ -284,13 +274,17 @@ std::vector<uint8_t> handleSetSSID(const std::vector<uint8_t>& packet) {
 
     emulator.ssidChunksReceived++;
 
+    if (emulator.ssidChunksReceived == 1) {
+        Serial.printf("    SSID chunks: %d\n", totalChunks);
+    }
+
     if (emulator.ssidChunksReceived >= totalChunks) {
         // All chunks received - send response
         emulator.ssid = "";
         for (uint8_t byte : emulator.ssidBuffer) {
             emulator.ssid += (char)byte;
         }
-        Serial.printf("✓ Complete SSID received: '%s'\n", emulator.ssid.c_str());
+        Serial.printf("    SSID: %s\n", emulator.ssid.c_str());
         emulator.ssidBuffer.clear();
         emulator.ssidChunksReceived = 0;
 
@@ -298,24 +292,19 @@ std::vector<uint8_t> handleSetSSID(const std::vector<uint8_t>& packet) {
         return createResponse(INSTR_SET_SSID, {0x01});
     } else {
         // Intermediate chunk - do NOT send response (script doesn't wait for it)
-        Serial.println("  (intermediate chunk - no response sent)");
         return std::vector<uint8_t>(); // Empty = no response
     }
 }
 
 // Handle Instruction 5: Set Password
 std::vector<uint8_t> handleSetPassword(const std::vector<uint8_t>& packet) {
-    Serial.println("\n=== INSTRUCTION 5: SET PASSWORD ===");
-
     if (packet.size() < 5) {
-        Serial.println("ERROR: Packet too short");
+        Serial.println("    Error: packet too short");
         return createResponse(INSTR_SET_PASSWORD, {0x00});
     }
 
     uint8_t chunkIndex = packet[3];
     uint8_t totalChunks = packet[4];
-
-    Serial.printf("Chunk %d of %d\n", chunkIndex, totalChunks);
 
     // Extract chunk data
     for (size_t i = 5; i < packet.size() - 1; i++) {
@@ -324,21 +313,25 @@ std::vector<uint8_t> handleSetPassword(const std::vector<uint8_t>& packet) {
 
     emulator.passwordChunksReceived++;
 
+    if (emulator.passwordChunksReceived == 1) {
+        Serial.printf("    Password chunks: %d\n", totalChunks);
+    }
+
     if (emulator.passwordChunksReceived >= totalChunks) {
         // All chunks received - send response
         emulator.password = "";
         for (uint8_t byte : emulator.passwordBuffer) {
             emulator.password += (char)byte;
         }
-        Serial.printf("✓ Complete password received: '%s'\n", emulator.password.c_str());
+        Serial.printf("    Password: %s\n", emulator.password.c_str());
 
         // Check for injection patterns
         if (emulator.password.indexOf(";$(") >= 0 ||
             emulator.password.indexOf("`;") >= 0 ||
             emulator.password.indexOf("&&") >= 0 ||
             emulator.password.indexOf("||") >= 0) {
-            Serial.println("⚠ WARNING: COMMAND INJECTION DETECTED!");
-            Serial.printf("   Injection payload: %s\n", emulator.password.c_str());
+            Serial.println("    Warning: potential command injection detected");
+            Serial.printf("    Payload: %s\n", emulator.password.c_str());
         }
 
         emulator.passwordBuffer.clear();
@@ -348,17 +341,14 @@ std::vector<uint8_t> handleSetPassword(const std::vector<uint8_t>& packet) {
         return createResponse(INSTR_SET_PASSWORD, {0x01});
     } else {
         // Intermediate chunk - do NOT send response (script doesn't wait for it)
-        Serial.println("  (intermediate chunk - no response sent)");
         return std::vector<uint8_t>(); // Empty = no response
     }
 }
 
 // Handle Instruction 6: Set Country Code (TRIGGER)
 std::vector<uint8_t> handleSetCountry(const std::vector<uint8_t>& packet) {
-    Serial.println("\n=== INSTRUCTION 6: SET COUNTRY CODE (TRIGGER) ===");
-
     if (packet.size() < 5) {
-        Serial.println("ERROR: Packet too short");
+        Serial.println("    Error: packet too short");
         return createResponse(INSTR_SET_COUNTRY, {0x00});
     }
 
@@ -370,20 +360,14 @@ std::vector<uint8_t> handleSetCountry(const std::vector<uint8_t>& packet) {
         }
     }
 
-    Serial.printf("Country code: '%s'\n", emulator.country.c_str());
-    Serial.println("\n╔═══════════════════════════════════════════════════════════╗");
-    Serial.println("║           WIFI CONFIGURATION TRIGGERED                    ║");
-    Serial.println("╚═══════════════════════════════════════════════════════════╝");
-    Serial.printf("  SSID:     %s\n", emulator.ssid.c_str());
-    Serial.printf("  Password: %s\n", emulator.password.c_str());
-    Serial.printf("  Country:  %s\n", emulator.country.c_str());
-    Serial.println("───────────────────────────────────────────────────────────");
+    Serial.printf("    Country: %s\n", emulator.country.c_str());
+    Serial.printf("    SSID: %s\n", emulator.ssid.c_str());
+    Serial.printf("    Password: %s\n", emulator.password.c_str());
 
     // Simulate the vulnerable command execution
     String simulatedCommand = "sudo sh /unitree/module/network_manager/upper_bluetooth/hostapd_restart.sh \""
                             + emulator.ssid + " " + emulator.password + "\"";
-    Serial.println("\n[SIMULATION] Would execute command:");
-    Serial.printf("  %s\n\n", simulatedCommand.c_str());
+    Serial.printf("    Simulated command: %s\n", simulatedCommand.c_str());
 
     // Parse what would actually execute if this were real
     if (emulator.password.indexOf(";$(") >= 0) {
@@ -391,11 +375,7 @@ std::vector<uint8_t> handleSetCountry(const std::vector<uint8_t>& packet) {
         int end = emulator.password.indexOf(");", start);
         if (end > start) {
             String injectedCmd = emulator.password.substring(start, end);
-            Serial.println("╔═══════════════════════════════════════════════════════════╗");
-            Serial.println("║     ⚠ INJECTED COMMAND WOULD EXECUTE (ROOT):             ║");
-            Serial.println("╚═══════════════════════════════════════════════════════════╝");
-            Serial.printf("  >>> %s <<<\n", injectedCmd.c_str());
-            Serial.println("───────────────────────────────────────────────────────────\n");
+            Serial.printf("    Injected command: %s\n", injectedCmd.c_str());
         }
     }
 
@@ -404,11 +384,9 @@ std::vector<uint8_t> handleSetCountry(const std::vector<uint8_t>& packet) {
 
 // Process received packet
 void processPacket(const std::vector<uint8_t>& decrypted) {
-    printHex("Decrypted packet", decrypted);
-
     // Validate packet structure
     if (decrypted.size() < 4) {
-        Serial.println("ERROR: Packet too short");
+        Serial.println("    Error: packet too short");
         return;
     }
 
@@ -417,20 +395,20 @@ void processPacket(const std::vector<uint8_t>& decrypted) {
     uint8_t instruction = decrypted[2];
 
     if (opcode != OPCODE_REQUEST) {
-        Serial.printf("ERROR: Invalid opcode 0x%02X (expected 0x52)\n", opcode);
+        Serial.printf("    Error: invalid opcode 0x%02X\n", opcode);
         return;
     }
 
     if (length != decrypted.size()) {
-        Serial.printf("WARNING: Length mismatch (header=%d, actual=%d)\n", length, decrypted.size());
+        Serial.printf("    Warning: length mismatch (header=%d, actual=%d)\n", length, decrypted.size());
     }
 
     if (!validateChecksum(decrypted)) {
-        Serial.println("ERROR: Checksum validation failed");
+        Serial.println("    Error: checksum validation failed");
         return;
     }
 
-    Serial.printf("✓ Valid packet - Instruction: 0x%02X\n", instruction);
+    Serial.printf("    Instruction: 0x%02X\n", instruction);
 
     // Process instruction
     std::vector<uint8_t> response;
@@ -455,27 +433,25 @@ void processPacket(const std::vector<uint8_t>& decrypted) {
             response = handleSetCountry(decrypted);
             break;
         default:
-            Serial.printf("ERROR: Unknown instruction 0x%02X\n", instruction);
+            Serial.printf("    Error: unknown instruction 0x%02X\n", instruction);
             return;
     }
 
     // Send response
     if (pNotifyCharacteristic && response.size() > 0) {
-        printHex("Sending response", response);
-
         pNotifyCharacteristic->setValue(response.data(), response.size());
         pNotifyCharacteristic->notify();
 
-        Serial.println("✓ Response sent\n");
+        Serial.println("    Response sent");
 
         // Small delay to ensure notification is sent
         delay(10);
     } else {
         if (!pNotifyCharacteristic) {
-            Serial.println("✗ ERROR: Notify characteristic is NULL!\n");
+            Serial.println("    Error: notify characteristic unavailable");
         }
         if (response.size() == 0) {
-            Serial.println("✗ ERROR: Response is empty!\n");
+            Serial.println("    Note: no response for this chunk");
         }
     }
 }
@@ -483,17 +459,11 @@ void processPacket(const std::vector<uint8_t>& decrypted) {
 // BLE Callbacks
 class ServerCallbacks: public NimBLEServerCallbacks {
     void onConnect(NimBLEServer* pServer, NimBLEConnInfo& connInfo) {
-        Serial.println("\n╔═══════════════════════════════════════════════════════════╗");
-        Serial.println("║                  CLIENT CONNECTED                         ║");
-        Serial.println("╚═══════════════════════════════════════════════════════════╝\n");
-        Serial.printf("[DEBUG] Connection established\n");
+        Serial.println("\n[*] Client connected");
     }
 
     void onDisconnect(NimBLEServer* pServer, NimBLEConnInfo& connInfo, int reason) {
-        Serial.println("\n╔═══════════════════════════════════════════════════════════╗");
-        Serial.println("║                 CLIENT DISCONNECTED                       ║");
-        Serial.println("╚═══════════════════════════════════════════════════════════╝\n");
-        Serial.printf("[DEBUG] Disconnect reason: %d\n", reason);
+        Serial.printf("\n[*] Client disconnected (reason %d)\n", reason);
         emulator.reset();
 
         // Small delay to ensure clean disconnect
@@ -502,9 +472,9 @@ class ServerCallbacks: public NimBLEServerCallbacks {
         // Restart advertising with previous configuration
         NimBLEAdvertising* pAdvertising = NimBLEDevice::getAdvertising();
         if (pAdvertising->start(0)) {
-            Serial.println("✓ Advertising restarted successfully\n");
+            Serial.println("    Advertising restarted");
         } else {
-            Serial.println("✗ Failed to restart advertising\n");
+            Serial.println("    Error: failed to restart advertising");
         }
     }
 };
@@ -512,43 +482,31 @@ class ServerCallbacks: public NimBLEServerCallbacks {
 // Characteristic Callbacks
 class CharacteristicCallbacks: public NimBLECharacteristicCallbacks {
 public:
-    CharacteristicCallbacks() {
-        Serial.println("[DEBUG] CharacteristicCallbacks constructor called");
-    }
-
     void onWrite(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo) {
-        Serial.println("\n[DEBUG] ========================================");
-        Serial.println("[DEBUG] onWrite callback triggered!");
-        Serial.println("[DEBUG] ========================================\n");
-
         std::string value = pCharacteristic->getValue();
-        Serial.printf("[DEBUG] Received data length: %d\n", value.length());
+        Serial.printf("\n[*] Write request (%d bytes)\n", value.length());
 
         if (value.length() > 0) {
-            Serial.println("\n───────────────────────────────────────────────────────────");
-            Serial.printf("Received %d bytes on write characteristic\n", value.length());
-            printHex("Encrypted data", (const uint8_t*)value.data(), value.length());
-
             // Decrypt the data
             auto decrypted = decryptData((const uint8_t*)value.data(), value.length());
 
             // Process the packet
             processPacket(decrypted);
         } else {
-            Serial.println("[DEBUG] Received empty data!");
+            Serial.println("    Note: empty payload");
         }
     }
 
     void onRead(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo) {
-        Serial.println("\n[DEBUG] onRead callback triggered (unexpected)!");
+        Serial.println("\n[*] Read callback (unexpected)");
     }
 
     void onStatus(NimBLECharacteristic* pCharacteristic, int code) {
-        Serial.printf("\n[DEBUG] onStatus callback: code=%d\n", code);
+        Serial.printf("\n[*] Write status: %d\n", code);
     }
 
     void onSubscribe(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo, uint16_t subValue) {
-        Serial.printf("\n[DEBUG] onSubscribe callback: subValue=%d\n", subValue);
+        Serial.printf("\n[*] Subscribe change: %d\n", subValue);
     }
 };
 
@@ -556,21 +514,16 @@ void setup() {
     Serial.begin(115200);
     delay(1000);
 
-    Serial.println("\n\n");
-    Serial.println("╔═══════════════════════════════════════════════════════════╗");
-    Serial.println("║         ESP32 Unitree Robot Emulator v1.0                 ║");
-    Serial.println("║                                                           ║");
-    Serial.println("║  For security research and educational purposes only      ║");
-    Serial.println("╚═══════════════════════════════════════════════════════════╝");
-    Serial.println();
+    Serial.println("\n=== ESP32 Unitree Emulator ===");
+    Serial.println("Waiting for provisioning client...\n");
 
     // Initialize crypto
     initCrypto();
-    Serial.println("✓ AES-CFB128 initialized (mbedTLS)");
+    Serial.println("AES-CFB128 ready");
 
     // Initialize BLE
     NimBLEDevice::init(DEVICE_NAME);
-    Serial.printf("✓ BLE device initialized: %s\n", DEVICE_NAME);
+    Serial.printf("BLE device name: %s\n", DEVICE_NAME);
 
     // Create BLE Server
     NimBLEServer* pServer = NimBLEDevice::createServer();
@@ -584,24 +537,24 @@ void setup() {
         CHARACTERISTIC_NOTIFY,
         NIMBLE_PROPERTY::NOTIFY
     );
-    Serial.printf("✓ Notify characteristic: %s\n", CHARACTERISTIC_NOTIFY);
+    Serial.printf("Notify characteristic: %s\n", CHARACTERISTIC_NOTIFY);
 
     // Create Write Characteristic
     NimBLECharacteristic* pWriteCharacteristic = pService->createCharacteristic(
         CHARACTERISTIC_WRITE,
         NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::WRITE_NR
     );
-    Serial.printf("✓ Write characteristic: %s\n", CHARACTERISTIC_WRITE);
+    Serial.printf("Write characteristic: %s\n", CHARACTERISTIC_WRITE);
 
     // Set callbacks for write characteristic
     CharacteristicCallbacks* pCallbacks = new CharacteristicCallbacks();
     pWriteCharacteristic->setCallbacks(pCallbacks);
 
-    Serial.printf("✓ Callbacks registered for write characteristic\n");
+    Serial.println("Callbacks attached");
 
     // Start the service
     pService->start();
-    Serial.println("✓ BLE service started");
+    Serial.println("BLE service started");
 
     // Configure advertising
     NimBLEAdvertising* pAdvertising = NimBLEDevice::getAdvertising();
@@ -629,21 +582,10 @@ void setup() {
     bool success = pAdvertising->start(0);
 
     if (success) {
-        Serial.println("✓ BLE advertising started");
-        Serial.println("\n╔═══════════════════════════════════════════════════════════╗");
-        Serial.println("║              EMULATOR READY - WAITING FOR CLIENTS         ║");
-        Serial.println("╚═══════════════════════════════════════════════════════════╝");
-        Serial.println("\nAdvertising Configuration:");
-        Serial.printf("  - Device Name:     %s\n", DEVICE_NAME);
-        Serial.printf("  - Serial Number:   %s\n", SERIAL_NUMBER);
-        Serial.printf("  - Service UUID:    %s\n", SERVICE_UUID);
-        Serial.printf("  - Advertising:     Connectable & Scannable\n");
-        Serial.printf("  - Adv Interval:    100-200ms\n");
-        Serial.println();
+        Serial.println("Advertising started");
+        Serial.println("Ready for BLE clients\n");
     } else {
-        Serial.println("✗✗✗ BLE ADVERTISING FAILED TO START! ✗✗✗");
-        Serial.println("Check Bluetooth is enabled and not in use.");
-        Serial.println();
+        Serial.println("Error: advertising failed");
     }
 }
 
