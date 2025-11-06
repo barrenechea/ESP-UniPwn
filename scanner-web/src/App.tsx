@@ -39,7 +39,7 @@ function App(): ReactElement {
 
     if (!supportsBluetooth) {
       setIsBleSupported(false)
-      setStatus('Web Bluetooth unsupported. Use Chrome or Edge on desktop.')
+      setStatus('Web Bluetooth unsupported. Use Chrome or Edge.')
     }
   }, [])
 
@@ -191,7 +191,7 @@ function App(): ReactElement {
               <div className="panel-header">
                 <h2>Browser not supported</h2>
                 <p>
-                  Your browser cannot access the Web Bluetooth API. Use Chrome or Edge on desktop.
+                  Your browser cannot access the Web Bluetooth API. Use Chrome or Edge.
                 </p>
               </div>
             </section>
@@ -246,6 +246,12 @@ function App(): ReactElement {
 
         <footer className="footer">
           <span>ESP-UniPwn tooling for Unitree research</span>
+          <span>
+            By{' '}
+            <a href="https://www.barrenechea.cl" target="_blank" rel="noreferrer">
+              Sebastian Barrenechea
+            </a>
+          </span>
         </footer>
       </div>
     </div>
