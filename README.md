@@ -5,7 +5,7 @@ Toolkit for exploring Unitree BLE weaknesses without needing production robots. 
 ## Repository Map
 - `esp32-scanner/` — ESP32 firmware that sweeps for Unitree robots, extracts serial numbers, and persists findings.
 - `esp32-emulator/` — ESP32 firmware that emulates the Unitree BLE stack so exploits can be rehearsed safely.
-- `scanner-web/` — Web dashboard that links to the scanner and browses the historical device archive.
+- `scanner-web/` — Web dashboard that links to the scanner and browses the historical device archive. Available at https://unipwn.barrenechea.cl
 
 ## Getting Started
 1. Install PlatformIO and flash either firmware project (`cd esp32-*/ && pio run --target upload`).
