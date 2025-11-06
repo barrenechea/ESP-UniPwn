@@ -52,6 +52,7 @@ Authors: _Víctor Mayoral-Vilches, Andreas Makris, Kevin Finisterre_
   - [Attack Flow Summary](#attack-flow-summary)
   - [The Wormable Threat](#the-wormable-threat)
   - [Proof of Concept](#proof-of-concept)
+  - [ESP32 Emulator](#esp32-emulator)
   - [Real-World Deployment &amp; Impact](#real-world-deployment--impact)
     - [Current Deployments](#current-deployments)
     - [Impact Assessment](#impact-assessment)
@@ -236,6 +237,41 @@ def build_pwn(cmd):
 ![Android App](images/Slack_September5.png)
 
 ### Please notice, a full reboot of the robot might take 10-15 seconds after the command was send ;)
+
+## ESP32 Emulator
+
+For testing and development purposes, we've created a complete ESP32-based emulator that mimics UniTree robots. This allows security researchers and developers to:
+
+- **Test exploits** without physical robot hardware
+- **Port scripts** to other targets with confidence
+- **Develop defensive measures** in a safe environment
+- **Train** on the vulnerability in educational settings
+
+The emulator implements:
+- ✅ Full BLE protocol (all 6 instructions)
+- ✅ AES-CFB128 encryption with hardcoded keys
+- ✅ Packet validation and checksum verification
+- ✅ Command injection detection and logging
+- ✅ 1:1 protocol-level compatibility with real robots
+
+**Location:** [`esp32-emulator/`](esp32-emulator/)
+
+**Key Features:**
+- Responds identically to real UniTree robots
+- Detects and logs injection attempts without executing them
+- Comprehensive serial output for debugging
+- Easy to build and flash with PlatformIO
+- Fully documented architecture
+
+**Quick Start:**
+```bash
+cd esp32-emulator
+pio run --target upload
+# Test with the original script
+python3 ../script.py
+```
+
+See the [emulator documentation](esp32-emulator/README.md) for detailed build instructions, testing procedures, and architecture details.
 
 ## Real-World Deployment & Impact
 
