@@ -9,6 +9,7 @@
 
 #include <Arduino.h>
 #include <BLEDevice.h>
+#include <BLEServer.h>
 #include <BLEClient.h>
 #include <BLEScan.h>
 #include <BLEAdvertisedDevice.h>
@@ -16,11 +17,18 @@
 #include "mbedtls/aes.h"
 #include <map>
 #include <vector>
+#include "nvs_flash.h"
+#include "nvs.h"
 
 // BLE Service and Characteristic UUIDs (from UniTree protocol)
 #define SERVICE_UUID           "0000ffe0-0000-1000-8000-00805f9b34fb"
 #define CHARACTERISTIC_NOTIFY  "0000ffe1-0000-1000-8000-00805f9b34fb"
 #define CHARACTERISTIC_WRITE   "0000ffe2-0000-1000-8000-00805f9b34fb"
+
+// Web Dashboard Service UUIDs
+#define DASHBOARD_SERVICE_UUID      "0000fff0-0000-1000-8000-00805f9b34fb"
+#define DEVICE_LIST_CHAR_UUID       "0000fff1-0000-1000-8000-00805f9b34fb"
+#define DEVICE_COUNT_CHAR_UUID      "0000fff2-0000-1000-8000-00805f9b34fb"
 
 // AES Encryption constants (hardcoded in UniTree firmware)
 const uint8_t AES_KEY[16] = {
@@ -72,9 +80,16 @@ uint8_t serialTotalChunks = 0;
 bool serialComplete = false;
 String serialNumber = "";
 
+// BLE Server for web dashboard
+BLEServer* pDashboardServer = nullptr;
+BLECharacteristic* pDeviceListChar = nullptr;
+BLECharacteristic* pDeviceCountChar = nullptr;
+
 // Forward declarations
 bool connectAndFetchSerial(BLEAddress address, String deviceName);
 void scanForDevices();
+String getAllDevicesFromNVS();
+uint8_t getDeviceCountFromNVS();
 
 // Initialize AES
 void initCrypto() {
@@ -164,7 +179,92 @@ void saveDeviceData(const DeviceData& data) {
     preferences.putString(key.c_str(), data.serialNumber);
     preferences.end();
     devicesScanned++;
+
     Serial.println("    Saved to NVS");
+
+    // Update BLE characteristics for web dashboard
+    if (pDeviceListChar && pDeviceCountChar) {
+        String deviceList = getAllDevicesFromNVS();
+        uint8_t count = getDeviceCountFromNVS();
+
+        pDeviceListChar->setValue(deviceList.c_str());
+        pDeviceListChar->notify();
+
+        pDeviceCountChar->setValue(&count, 1);
+        pDeviceCountChar->notify();
+    }
+}
+
+// Get all devices directly from NVS as formatted string
+String getAllDevicesFromNVS() {
+    String result = "";
+
+    nvs_handle_t handle;
+    esp_err_t err = nvs_open("unitree_scan", NVS_READONLY, &handle);
+    if (err != ESP_OK) {
+        return result;
+    }
+
+    // Iterate through all entries in the namespace
+    nvs_iterator_t it = NULL;
+    err = nvs_entry_find("nvs", "unitree_scan", NVS_TYPE_STR, &it);
+
+    while (err == ESP_OK) {
+        nvs_entry_info_t info;
+        nvs_entry_info(it, &info);
+
+        // Read the value for this key
+        size_t required_size = 0;
+        err = nvs_get_str(handle, info.key, NULL, &required_size);
+        if (err == ESP_OK && required_size > 0) {
+            char* value = (char*)malloc(required_size);
+            err = nvs_get_str(handle, info.key, value, &required_size);
+            if (err == ESP_OK) {
+                // Reconstruct MAC address from key (add colons back)
+                String macKey = String(info.key);
+                String macAddress = "";
+                for (size_t i = 0; i < macKey.length(); i += 2) {
+                    if (i > 0) macAddress += ":";
+                    macAddress += macKey.substring(i, i + 2);
+                }
+
+                result += macAddress + "|" + String(value) + "\n";
+            }
+            free(value);
+        }
+
+        err = nvs_entry_next(&it);
+    }
+
+    nvs_release_iterator(it);
+    nvs_close(handle);
+
+    return result;
+}
+
+// Get device count directly from NVS
+uint8_t getDeviceCountFromNVS() {
+    uint8_t count = 0;
+
+    nvs_handle_t handle;
+    esp_err_t err = nvs_open("unitree_scan", NVS_READONLY, &handle);
+    if (err != ESP_OK) {
+        return 0;
+    }
+
+    // Count entries in the namespace
+    nvs_iterator_t it = NULL;
+    err = nvs_entry_find("nvs", "unitree_scan", NVS_TYPE_STR, &it);
+
+    while (err == ESP_OK) {
+        count++;
+        err = nvs_entry_next(&it);
+    }
+
+    nvs_release_iterator(it);
+    nvs_close(handle);
+
+    return count;
 }
 
 // Notification callback
@@ -335,7 +435,41 @@ void setup() {
     // Initialize BLE
     BLEDevice::init("ESP32-Scanner");
 
-    // Start scanning
+    // Create BLE Server for web dashboard
+    pDashboardServer = BLEDevice::createServer();
+    BLEService* pDashboardService = pDashboardServer->createService(DASHBOARD_SERVICE_UUID);
+
+    // Create device list characteristic (read + notify)
+    pDeviceListChar = pDashboardService->createCharacteristic(
+        DEVICE_LIST_CHAR_UUID,
+        BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY
+    );
+
+    // Create device count characteristic (read + notify)
+    pDeviceCountChar = pDashboardService->createCharacteristic(
+        DEVICE_COUNT_CHAR_UUID,
+        BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY
+    );
+
+    // Initialize characteristics with loaded data from NVS
+    String deviceList = getAllDevicesFromNVS();
+    uint8_t deviceCount = getDeviceCountFromNVS();
+    pDeviceListChar->setValue(deviceList.c_str());
+    pDeviceCountChar->setValue(&deviceCount, 1);
+    Serial.printf("Initialized BLE characteristics with %d devices\n", deviceCount);
+
+    // Start service
+    pDashboardService->start();
+
+    // Start advertising (for web dashboard connection)
+    BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
+    pAdvertising->addServiceUUID(DASHBOARD_SERVICE_UUID);
+    pAdvertising->setScanResponse(true);
+    pAdvertising->start();
+
+    Serial.println("Web dashboard BLE server started");
+
+    // Start scanning for UniTree devices
     BLEScan* pBLEScan = BLEDevice::getScan();
     pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
     pBLEScan->setActiveScan(true);
