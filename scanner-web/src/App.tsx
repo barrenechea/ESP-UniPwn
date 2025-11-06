@@ -39,7 +39,7 @@ function App(): ReactElement {
 
     if (!supportsBluetooth) {
       setIsBleSupported(false)
-      setStatus('Web Bluetooth unsupported. Use Chrome or Edge on desktop over HTTPS.')
+      setStatus('Web Bluetooth unsupported. Use Chrome or Edge on desktop.')
     }
   }, [])
 
@@ -191,8 +191,7 @@ function App(): ReactElement {
               <div className="panel-header">
                 <h2>Browser not supported</h2>
                 <p>
-                  Your browser cannot access the Web Bluetooth API. Use Chrome or Edge on desktop and
-                  ensure ESP-UniPwn is served over HTTPS.
+                  Your browser cannot access the Web Bluetooth API. Use Chrome or Edge on desktop.
                 </p>
               </div>
             </section>
