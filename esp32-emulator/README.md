@@ -1,6 +1,6 @@
-# ESP32 UniTree Robot Emulator
+# ESP32 Unitree Robot Emulator
 
-A complete ESP32-based emulator that mimics UniTree robots (Go2, G1, H1, B2) for security research and testing purposes. This emulator implements the full BLE protocol used by UniTree robots, allowing you to test exploits and port scripts without needing physical hardware.
+A complete ESP32-based emulator that mimics Unitree robots (Go2, G1, H1, B2) for security research and testing purposes. This emulator implements the full BLE protocol used by Unitree robots, allowing you to test exploits and port scripts without needing physical hardware.
 
 ## Features
 
@@ -10,7 +10,7 @@ A complete ESP32-based emulator that mimics UniTree robots (Go2, G1, H1, B2) for
 - ✅ **State Management**: Tracks authentication, chunked data reassembly
 - ✅ **Injection Detection**: Identifies and logs command injection attempts
 - ✅ **Comprehensive Logging**: Detailed serial output for debugging
-- ✅ **1:1 Emulation**: Behaves identically to real UniTree robots
+- ✅ **1:1 Emulation**: Behaves identically to real Unitree robots
 
 ## Hardware Requirements
 
@@ -169,7 +169,7 @@ Country code: 'US'
 
 ## Protocol Implementation
 
-The emulator implements the complete UniTree BLE protocol:
+The emulator implements the complete Unitree BLE protocol:
 
 ### BLE Service
 - **Service UUID**: `0000ffe0-0000-1000-8000-00805f9b34fb`
@@ -239,7 +239,7 @@ esp32-emulator/
 
 ### Key Components
 
-**`UniTreeEmulator` class**: State management
+**`UnitreeEmulator` class**: State management
 - Authentication flag
 - SSID/password storage
 - Chunk reassembly buffers
@@ -319,6 +319,6 @@ This tool is provided for educational and research purposes. Use responsibly and
 
 ## References
 
-- [UniTree Vulnerabilities Disclosure](https://www.zerodayinitiative.com/)
+- [Unitree Vulnerabilities Disclosure](https://www.zerodayinitiative.com/)
 - [Original Script](../script.py)
 - [Vulnerability Details](../README.md)

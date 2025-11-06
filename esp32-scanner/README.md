@@ -1,10 +1,10 @@
-# ESP32 UniTree Device Scanner
+# ESP32 Unitree Device Scanner
 
-Automatically scans for UniTree robots (Go2, G1, H1, B2, X1) via BLE, extracts their serial numbers, and optionally configures WiFi. All data is stored in non-volatile storage (NVS) with MAC address + serial number + WiFi config.
+Automatically scans for Unitree robots (Go2, G1, H1, B2, X1) via BLE, extracts their serial numbers, and optionally configures WiFi. All data is stored in non-volatile storage (NVS) with MAC address + serial number + WiFi config.
 
 ## Features
 
-- **Continuous Scanning**: Never stops scanning for UniTree devices (no scan interval)
+- **Continuous Scanning**: Never stops scanning for Unitree devices (no scan interval)
 - **Serial Number Extraction**: Connects to each device and extracts the serial number
 - **WiFi Configuration**: Optionally configures WiFi on discovered devices (SSID, password, country)
 - **Complete NVS Storage**: Stores MAC address + serial number + WiFi configuration
@@ -17,7 +17,7 @@ Automatically scans for UniTree robots (Go2, G1, H1, B2, X1) via BLE, extracts t
 ## How It Works
 
 1. **BLE Scanning**: Scans for BLE devices with names starting with `G1_`, `Go2_`, `B2_`, `H1_`, or `X1_`
-2. **Connection**: When a UniTree device is found, connects to it
+2. **Connection**: When a Unitree device is found, connects to it
 3. **Handshake**: Performs authentication handshake with "unitree" passphrase
 4. **Serial Extraction**: Requests and receives the device serial number (may be chunked)
 5. **WiFi Configuration** (optional): Configures WiFi with custom SSID, password, and country code
@@ -70,7 +70,7 @@ Edit `src/main.cpp` to adjust scanning and WiFi settings:
 3. Set your country code in `WIFI_COUNTRY` (e.g., "US", "GB", "CN")
 4. Rebuild and upload
 
-**⚠️ WARNING**: When `CONFIGURE_WIFI` is enabled, the scanner will automatically configure WiFi on **ALL** discovered UniTree devices. Only enable this for authorized testing!
+**⚠️ WARNING**: When `CONFIGURE_WIFI` is enabled, the scanner will automatically configure WiFi on **ALL** discovered Unitree devices. Only enable this for authorized testing!
 
 ### Scan Settings (Lines 50-54)
 
@@ -125,9 +125,9 @@ You can view stored data via serial monitor when devices are skipped:
 
 ```
 ╔═══════════════════════════════════════════════════════════╗
-║        ESP32 UniTree Device Scanner v2.0                  ║
+║        ESP32 Unitree Device Scanner v2.0                  ║
 ║                                                           ║
-║  Automatically scans for UniTree robots, extracts serial  ║
+║  Automatically scans for Unitree robots, extracts serial  ║
 ║  numbers, and optionally configures WiFi. Stores all     ║
 ║  data in NVS for persistence across reboots.             ║
 ║                                                           ║
@@ -154,12 +154,12 @@ Looking for: G1_*, Go2_*, B2_*, H1_*, X1_*
 Scan mode: CONTINUOUS (will never stop)
 
 [+] Continuous scan started successfully
-[*] Waiting for UniTree devices...
+[*] Waiting for Unitree devices...
 
 [DEBUG] Device found: 'iPhone' MAC: aa:11:22:33:44:55 RSSI: -65 dBm
 [DEBUG] Device found: '' MAC: bb:22:33:44:55:66 RSSI: -78 dBm
 
-[!] UniTree device found: Go2_ABC123
+[!] Unitree device found: Go2_ABC123
     MAC: aa:bb:cc:dd:ee:ff, RSSI: -45 dBm
 
 ╔═══════════════════════════════════════════════════════════╗
@@ -243,7 +243,7 @@ This tool is designed for:
 
 ## Protocol Details
 
-The scanner implements the UniTree BLE protocol:
+The scanner implements the Unitree BLE protocol:
 
 1. **Service UUID**: `0000ffe0-0000-1000-8000-00805f9b34fb`
 2. **Notify Characteristic**: `0000ffe1-0000-1000-8000-00805f9b34fb`
@@ -255,7 +255,7 @@ The scanner implements the UniTree BLE protocol:
 ## Troubleshooting
 
 ### No devices found
-- Ensure UniTree devices are powered on and BLE is enabled
+- Ensure Unitree devices are powered on and BLE is enabled
 - Check that you're within BLE range (typically <10m)
 - Verify device names match the expected patterns (G1_*, Go2_*, B2_*, H1_*, X1_*)
 - Enable `DEBUG_SCAN` to see all BLE devices being discovered
@@ -277,7 +277,7 @@ To test the scanner with the included emulator:
 ### Serial extraction fails
 - Increase `NOTIFICATION_TIMEOUT`
 - Check serial monitor for error messages
-- Verify the device implements the standard UniTree protocol
+- Verify the device implements the standard Unitree protocol
 
 ### NVS errors
 - Ensure NVS partition is properly configured in PlatformIO

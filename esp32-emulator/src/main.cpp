@@ -1,8 +1,8 @@
 /**
- * ESP32 UniTree Robot Emulator
+ * ESP32 Unitree Robot Emulator
  *
- * This emulator mimics a UniTree robot (Go2, G1, H1, B2) for security research
- * and testing purposes. It implements the BLE protocol used by UniTree robots
+ * This emulator mimics a Unitree robot (Go2, G1, H1, B2) for security research
+ * and testing purposes. It implements the BLE protocol used by Unitree robots
  * to accept WiFi configuration commands.
  *
  * For educational and authorized security testing only.
@@ -14,12 +14,12 @@
 #include <vector>
 #include <string>
 
-// BLE Service and Characteristic UUIDs (from UniTree protocol)
+// BLE Service and Characteristic UUIDs (from Unitree protocol)
 #define SERVICE_UUID           "0000ffe0-0000-1000-8000-00805f9b34fb"
 #define CHARACTERISTIC_NOTIFY  "0000ffe1-0000-1000-8000-00805f9b34fb"
 #define CHARACTERISTIC_WRITE   "0000ffe2-0000-1000-8000-00805f9b34fb"
 
-// AES Encryption constants (hardcoded in UniTree firmware)
+// AES Encryption constants (hardcoded in Unitree firmware)
 const uint8_t AES_KEY[16] = {
     0xdf, 0x98, 0xb7, 0x15, 0xd5, 0xc6, 0xed, 0x2b,
     0x25, 0x81, 0x7b, 0x6f, 0x25, 0x54, 0x12, 0x4a
@@ -47,7 +47,7 @@ const uint8_t AES_IV[16] = {
 #define SERIAL_NUMBER "ESP32-EMULATOR-v1.0-TESTDEVICE"
 
 // Global state
-class UniTreeEmulator {
+class UnitreeEmulator {
 public:
     bool authenticated = false;
     String ssid = "";
@@ -74,7 +74,7 @@ public:
     }
 };
 
-UniTreeEmulator emulator;
+UnitreeEmulator emulator;
 NimBLECharacteristic* pNotifyCharacteristic = nullptr;
 
 // mbedTLS AES context
@@ -558,7 +558,7 @@ void setup() {
 
     Serial.println("\n\n");
     Serial.println("╔═══════════════════════════════════════════════════════════╗");
-    Serial.println("║         ESP32 UniTree Robot Emulator v1.0                 ║");
+    Serial.println("║         ESP32 Unitree Robot Emulator v1.0                 ║");
     Serial.println("║                                                           ║");
     Serial.println("║  For security research and educational purposes only      ║");
     Serial.println("╚═══════════════════════════════════════════════════════════╝");

@@ -240,7 +240,7 @@ def build_pwn(cmd):
 
 ## ESP32 Emulator
 
-For testing and development purposes, we've created a complete ESP32-based emulator that mimics UniTree robots. This allows security researchers and developers to:
+For testing and development purposes, we've created a complete ESP32-based emulator that mimics Unitree robots. This allows security researchers and developers to:
 
 - **Test exploits** without physical robot hardware
 - **Port scripts** to other targets with confidence
@@ -257,7 +257,7 @@ The emulator implements:
 **Location:** [`esp32-emulator/`](esp32-emulator/)
 
 **Key Features:**
-- Responds identically to real UniTree robots
+- Responds identically to real Unitree robots
 - Detects and logs injection attempts without executing them
 - Comprehensive serial output for debugging
 - Easy to build and flash with PlatformIO

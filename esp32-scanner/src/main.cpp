@@ -1,7 +1,7 @@
 /**
- * ESP32 UniTree Device Scanner - Bluedroid Version
+ * ESP32 Unitree Device Scanner - Bluedroid Version
  *
- * Automatically scans for UniTree robots (Go2, G1, H1, B2, X1) via BLE,
+ * Automatically scans for Unitree robots (Go2, G1, H1, B2, X1) via BLE,
  * extracts their serial numbers and stores them in NVS.
  *
  * Using Bluedroid (standard ESP32 BLE stack) for maximum compatibility.
@@ -20,7 +20,7 @@
 #include "nvs_flash.h"
 #include "nvs.h"
 
-// BLE Service and Characteristic UUIDs (from UniTree protocol)
+// BLE Service and Characteristic UUIDs (from Unitree protocol)
 #define SERVICE_UUID           "0000ffe0-0000-1000-8000-00805f9b34fb"
 #define CHARACTERISTIC_NOTIFY  "0000ffe1-0000-1000-8000-00805f9b34fb"
 #define CHARACTERISTIC_WRITE   "0000ffe2-0000-1000-8000-00805f9b34fb"
@@ -30,7 +30,7 @@
 #define DEVICE_LIST_CHAR_UUID       "0000fff1-0000-1000-8000-00805f9b34fb"
 #define DEVICE_COUNT_CHAR_UUID      "0000fff2-0000-1000-8000-00805f9b34fb"
 
-// AES Encryption constants (hardcoded in UniTree firmware)
+// AES Encryption constants (hardcoded in Unitree firmware)
 const uint8_t AES_KEY[16] = {
     0xdf, 0x98, 0xb7, 0x15, 0xd5, 0xc6, 0xed, 0x2b,
     0x25, 0x81, 0x7b, 0x6f, 0x25, 0x54, 0x12, 0x4a
@@ -403,14 +403,14 @@ class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
         String deviceName = advertisedDevice.getName().c_str();
         if (deviceName.length() == 0) return;
 
-        // Check if UniTree device
-        bool isUniTree = deviceName.startsWith("G1_") ||
+        // Check if Unitree device
+        bool isUnitree = deviceName.startsWith("G1_") ||
                         deviceName.startsWith("Go2_") ||
                         deviceName.startsWith("B2_") ||
                         deviceName.startsWith("H1_") ||
                         deviceName.startsWith("X1_");
 
-        if (isUniTree) {
+        if (isUnitree) {
             pServerAddress = new BLEAddress(advertisedDevice.getAddress());
             doConnect = true;
             advertisedDevice.getScan()->stop();
@@ -422,8 +422,8 @@ void setup() {
     Serial.begin(115200);
     delay(2000);
 
-    Serial.println("\n=== ESP32 UniTree Scanner ===");
-    Serial.println("Scanning for UniTree devices...\n");
+    Serial.println("\n=== ESP32 Unitree Scanner ===");
+    Serial.println("Scanning for Unitree devices...\n");
 
     // Initialize crypto
     initCrypto();
@@ -469,7 +469,7 @@ void setup() {
 
     Serial.println("Web dashboard BLE server started");
 
-    // Start scanning for UniTree devices
+    // Start scanning for Unitree devices
     BLEScan* pBLEScan = BLEDevice::getScan();
     pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
     pBLEScan->setActiveScan(true);
@@ -484,7 +484,7 @@ void loop() {
         isConnecting = true;
 
         if (pServerAddress) {
-            connectAndFetchSerial(*pServerAddress, "UniTree Device");
+            connectAndFetchSerial(*pServerAddress, "Unitree Device");
             delete pServerAddress;
             pServerAddress = nullptr;
         }
